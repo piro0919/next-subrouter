@@ -94,6 +94,22 @@ export const config = {
 
 ## API Reference
 
+### `SubdomainLink`
+
+A React component for cross-subdomain navigation.
+
+```typescript
+import { SubdomainLink } from "next-subrouter";
+
+<SubdomainLink
+  subdomain="admin"
+  href="/dashboard"
+  className="nav-link"
+>
+  Admin Dashboard
+</SubdomainLink>
+```
+
 ### `createSubrouterMiddleware(subRoutes, options?)`
 
 Creates a middleware for subdomain-based routing.
@@ -175,6 +191,94 @@ type CreateIntlSubrouterMiddlewareOptions = {
   locales: string[]; // Supported locales
 };
 ```
+
+## Cross-Subdomain Navigation
+
+### SubdomainLink Component
+
+For navigating between different subdomains, use the provided `SubdomainLink` component. Regular Next.js `Link` components only work within the same domain.
+
+```typescript
+// Import the component
+import { SubdomainLink } from "next-subrouter";
+
+// Navigate to different subdomains
+<SubdomainLink subdomain="admin" href="/users">
+  Go to Admin
+</SubdomainLink>
+
+<SubdomainLink subdomain="blog" href="/posts">
+  Go to Blog
+</SubdomainLink>
+
+// Navigate to base domain (no subdomain)
+<SubdomainLink href="/home">
+  Go to Home
+</SubdomainLink>
+```
+
+#### SubdomainLink Props
+
+```typescript
+type SubdomainLinkProps = {
+  children: ReactNode;
+  className?: string;
+  href?: string; // Default: "/"
+  subdomain?: string; // Omit for base domain
+};
+```
+
+The component automatically handles:
+
+- **Development**: `fuga.localhost:3001` → `localhost:3001`
+- **Production**: `fuga.next-subrouter.kkweb.io` → `next-subrouter.kkweb.io`
+
+## Internationalization Setup
+
+When using `createIntlSubrouterMiddleware`, you need to configure the request handler to work with subdomain routing.
+
+### Request Configuration
+
+```typescript
+// src/i18n/request.ts
+import { hasLocale } from "next-intl";
+import { getRequestConfig } from "next-intl/server";
+import { routing } from "./routing";
+
+export default getRequestConfig(async ({ requestLocale }) => {
+  // Try to get locale from requestLocale first
+  let locale = await requestLocale;
+
+  // If requestLocale is not available, try to get from custom header set by middleware
+  if (!hasLocale(routing.locales, locale)) {
+    const { headers } = await import("next/headers");
+    const headersList = await headers();
+    const headerLocale = headersList.get("x-locale");
+
+    if (hasLocale(routing.locales, headerLocale)) {
+      locale = headerLocale;
+    }
+  }
+
+  // Fallback to default locale if still not found
+  if (!hasLocale(routing.locales, locale)) {
+    locale = routing.defaultLocale;
+  }
+
+  return {
+    locale,
+    messages: (await import(`../../messages/${locale}.json`)).default,
+  };
+});
+```
+
+This configuration:
+
+1. First tries to use the standard `requestLocale`
+2. Falls back to the `x-locale` header set by the middleware
+3. Uses the default locale as a final fallback
+
+This ensures proper locale detection when routes are rewritten by the subdomain middleware.
 
 ## Advanced Usage
 

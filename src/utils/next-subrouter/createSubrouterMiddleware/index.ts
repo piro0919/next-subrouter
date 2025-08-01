@@ -81,6 +81,24 @@ function parseHostname(
 }
 
 /**
+ * Check if subdomain should be treated as base domain
+ * Used to determine if default route should be applied
+ */
+function isBaseDomain(
+  subdomain: string,
+  configuredSubdomains: Set<string>,
+): boolean {
+  // localhost and IP addresses are always base domains
+  if (subdomain === "localhost" || /^[0-9.]+$/.test(subdomain)) {
+    return true;
+  }
+
+  // If subdomain is not in configuration, treat it as part of base domain
+  // This handles cases like next-subrouter.kkweb.io where "next-subrouter" is the base
+  return !configuredSubdomains.has(subdomain);
+}
+
+/**
  * Validate subRoutes configuration for duplicates
  * Throws error if duplicate paths or subdomains are found
  */
@@ -139,8 +157,15 @@ function resolveRoute(
     return { isDefaultRoute: false, route };
   }
 
-  // Apply default route for any unmatched subdomain (including localhost)
-  if (resolver.defaultRoute) {
+  // Get configured subdomains (excluding undefined/default route)
+  const configuredSubdomains = new Set(
+    Array.from(resolver.subdomainToRouteMap.keys()).filter(
+      (s) => s !== undefined,
+    ),
+  );
+
+  // Apply default route only for base domain
+  if (resolver.defaultRoute && isBaseDomain(subdomain, configuredSubdomains)) {
     return { isDefaultRoute: true, route: resolver.defaultRoute };
   }
 

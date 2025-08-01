@@ -57,7 +57,7 @@
   "files": [
     "dist"
   ],
-  "homepage": "https://github.com/piro0919/next-subrouter#readme",
+  "homepage": "https://next-subrouter.kkweb.io",
   "keywords": [
     "nextjs",
     "middleware",
@@ -102,5 +102,5 @@
     "type-check": "tsc --noemit"
   },
   "types": "dist/index.d.ts",
-  "version": "0.1.1"
+  "version": "0.1.2"
 }

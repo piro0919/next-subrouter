@@ -1,6 +1,7 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { SubdomainLink } from "@/utils/next-subrouter";
 
 export default function Page(): React.JSX.Element {
   const locale = useLocale();
@@ -13,6 +14,14 @@ export default function Page(): React.JSX.Element {
       <h1>{t("piyora")}</h1>
       <div>
         <Link href="/">Go to piyo</Link>
+      </div>
+      <div>
+        <SubdomainLink href="/hogera">Go to hogera</SubdomainLink>
+      </div>
+      <div>
+        <SubdomainLink href="/fugara" subdomain="fuga">
+          Go to fugara
+        </SubdomainLink>
       </div>
       <button
         onClick={() =>

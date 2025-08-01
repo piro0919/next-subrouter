@@ -9,3 +9,8 @@ export {
   type SubRoutes,
   type CreateSubrouterMiddlewareOptions,
 } from "./createSubrouterMiddleware";
+
+export {
+  default as SubdomainLink,
+  type SubdomainLinkProps,
+} from "./SubdomainLink";
