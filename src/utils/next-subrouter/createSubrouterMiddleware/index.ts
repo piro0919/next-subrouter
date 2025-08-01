@@ -81,14 +81,6 @@ function parseHostname(
 }
 
 /**
- * Check if subdomain is localhost or IP address
- * Used to determine if default route should be applied
- */
-function isLocalhostOrIP(subdomain: string): boolean {
-  return subdomain === "localhost" || /^[0-9.]+$/.test(subdomain);
-}
-
-/**
  * Validate subRoutes configuration for duplicates
  * Throws error if duplicate paths or subdomains are found
  */
@@ -147,7 +139,8 @@ function resolveRoute(
     return { isDefaultRoute: false, route };
   }
 
-  if (resolver.defaultRoute && isLocalhostOrIP(subdomain)) {
+  // Apply default route for any unmatched subdomain (including localhost)
+  if (resolver.defaultRoute) {
     return { isDefaultRoute: true, route: resolver.defaultRoute };
   }
 
@@ -250,8 +243,18 @@ export default function createSubrouterMiddleware(
     }
 
     const url = request.nextUrl.clone();
+    // Handle internationalized paths: if pathname starts with /{locale},
+    // preserve locale and append route path
+    // eslint-disable-next-line security/detect-unsafe-regex
+    const localeMatch = pathname.match(/^\/([a-z]{2})(\/.*)?$/);
 
-    url.pathname = `${route.path}${pathname}`;
+    if (localeMatch && route.path) {
+      const [, locale, remainingPath = ""] = localeMatch;
+
+      url.pathname = `/${locale}${route.path}${remainingPath}`;
+    } else {
+      url.pathname = `${route.path}${pathname}`;
+    }
 
     if (debug)
       console.log(
