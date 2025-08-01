@@ -26,17 +26,19 @@ export default function SubdomainLink({
     } else {
       // Fallback: detect from current host
       const currentHost = window.location.host;
-      const cleanHostname = currentHost.split(":")[0];
-      const hostParts = cleanHostname.split(".");
+      const [hostname, port] = currentHost.split(":");
+      const hostParts = hostname.split(".");
 
-      // For localhost or IP addresses, use as-is
-      if (cleanHostname === "localhost" || /^[0-9.:]+$/.test(cleanHostname)) {
-        baseDomain = cleanHostname;
+      // For localhost or IP addresses, preserve port
+      if (hostname === "localhost" || /^[0-9.]+$/.test(hostname)) {
+        baseDomain = port ? `${hostname}:${port}` : hostname;
       } else if (hostParts.length > 2) {
         // Assume last two parts are the base domain (e.g., example.com from sub.example.com)
-        baseDomain = hostParts.slice(-2).join(".");
+        const baseHostname = hostParts.slice(-2).join(".");
+
+        baseDomain = port ? `${baseHostname}:${port}` : baseHostname;
       } else {
-        baseDomain = cleanHostname;
+        baseDomain = port ? `${hostname}:${port}` : hostname;
       }
     }
 
