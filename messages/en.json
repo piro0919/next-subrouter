@@ -1,1 +1,14 @@
-{ "hello": "Hello" }
+{
+  "Fuga": {
+    "fuga": "Hello Fuga!",
+    "fugara": "Hello Fugara!"
+  },
+  "Hoge": {
+    "hoge": "Hello Hoge!",
+    "hogera": "Hello Hogera!"
+  },
+  "Piyo": {
+    "piyo": "Hello Piyo!",
+    "piyora": "Hello Piyora!"
+  }
+}

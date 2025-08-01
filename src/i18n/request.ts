@@ -3,11 +3,24 @@ import { getRequestConfig } from "next-intl/server";
 import { routing } from "./routing";
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  // Typically corresponds to the `[locale]` segment
-  const requested = await requestLocale;
-  const locale = hasLocale(routing.locales, requested)
-    ? requested
-    : routing.defaultLocale;
+  // Try to get locale from requestLocale first
+  let locale = await requestLocale;
+
+  // If requestLocale is not available, try to get from custom header set by middleware
+  if (!hasLocale(routing.locales, locale)) {
+    const { headers } = await import("next/headers");
+    const headersList = await headers();
+    const headerLocale = headersList.get("x-locale");
+
+    if (hasLocale(routing.locales, headerLocale)) {
+      locale = headerLocale;
+    }
+  }
+
+  // Fallback to default locale if still not found
+  if (!hasLocale(routing.locales, locale)) {
+    locale = routing.defaultLocale;
+  }
 
   return {
     locale,
