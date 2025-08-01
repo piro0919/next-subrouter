@@ -169,6 +169,13 @@ const middleware = createIntlSubrouterMiddleware(subRoutes, intlMiddleware, {
 
 ## Configuration
 
+### Environment Variables
+
+```bash
+# .env.local or .env
+NEXT_PUBLIC_BASE_DOMAIN=your-domain.com  # Optional: Base domain for SubdomainLink
+```
+
 ### Route Configuration
 
 ```typescript
@@ -228,10 +235,33 @@ type SubdomainLinkProps = {
 };
 ```
 
+#### Base Domain Configuration
+
+The component supports two ways to determine the base domain:
+
+1. **Environment Variable (Recommended)**:
+
+   ```bash
+   # .env.local
+   NEXT_PUBLIC_BASE_DOMAIN=your-domain.com
+   ```
+
+2. **Automatic Detection (Fallback)**:
+   - Detects from current hostname
+   - Works for localhost and most domain structures
+
+#### Examples with Base Domain
+
+With `NEXT_PUBLIC_BASE_DOMAIN=next-subrouter.kkweb.io`:
+
+- From `https://next-subrouter.kkweb.io/hoge` → `https://piyo.next-subrouter.kkweb.io/hoge`
+- From `https://fuga.next-subrouter.kkweb.io/fuga` → `https://piyo.next-subrouter.kkweb.io/fuga`
+- From any subdomain → `https://next-subrouter.kkweb.io/current-path` (when no subdomain specified)
+
 The component automatically handles:
 
-- **Development**: `fuga.localhost:3001` → `localhost:3001`
-- **Production**: `fuga.next-subrouter.kkweb.io` → `next-subrouter.kkweb.io`
+- **Development**: `admin.localhost:3001` → `localhost:3001`
+- **Production**: `admin.your-domain.com` → `your-domain.com`
 
 ## Internationalization Setup
 
