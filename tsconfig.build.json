@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "noEmit": false,
+    "outDir": "dist",
+    "sourceMap": true,
+    "target": "ES2017"
+  },
+  "exclude": [
+    "src/app/**/*",
+    "src/middleware.ts",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ],
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/utils/next-subrouter/index.ts",
+    "src/utils/next-subrouter/**/*.ts"
+  ]
+}

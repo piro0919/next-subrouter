@@ -1,36 +1,268 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# next-subrouter
 
-## Getting Started
+Next.js subdomain-based routing middleware with optional internationalization support.
 
-First, run the development server:
+A simple approach to organizing different feature domains within a single Next.js application.
+
+## Features
+
+- 🌐 **Subdomain-based routing** - Route requests from subdomains to specific paths
+- 🌍 **Internationalization support** - Seamless integration with next-intl
+- ⚡ **High performance** - Built-in caching for hostname parsing
+- 🛡️ **Type-safe** - Full TypeScript support
+- 🐛 **Debug mode** - Optional logging for development
+- 🔒 **Security** - Prevents direct access to route paths
+
+## Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install next-subrouter
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Quick Start
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Basic Subdomain Routing
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```typescript
+// middleware.ts
+import { createSubrouterMiddleware } from "next-subrouter";
 
-## Learn More
+const subRoutes = [
+  { path: "/admin", subdomain: "admin" },
+  { path: "/blog", subdomain: "blog" },
+  { path: "/app" }, // default route (no subdomain)
+];
 
-To learn more about Next.js, take a look at the following resources:
+export const middleware = createSubrouterMiddleware(subRoutes, {
+  debug: process.env.NODE_ENV === "development",
+});
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### With Internationalization (next-intl)
 
-## Deploy on Vercel
+```typescript
+// middleware.ts
+import { createIntlSubrouterMiddleware } from "next-subrouter";
+import createIntlMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+const intlMiddleware = createIntlMiddleware(routing);
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+const subRoutes = [
+  { path: "/admin", subdomain: "admin" },
+  { path: "/blog", subdomain: "blog" },
+  { path: "/app" },
+];
+
+export const middleware = createIntlSubrouterMiddleware(
+  subRoutes,
+  intlMiddleware,
+  {
+    debug: process.env.NODE_ENV === "development",
+    locales: ["en", "ja"],
+    defaultLocale: "en",
+  },
+);
+
+export const config = {
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+};
+```
+
+## How It Works
+
+### Subdomain Routing Examples
+
+| URL                       | Routes to        | Description                             |
+| ------------------------- | ---------------- | --------------------------------------- |
+| `admin.example.com/users` | `/admin/users`   | Admin subdomain routes to `/admin` path |
+| `blog.example.com/posts`  | `/blog/posts`    | Blog subdomain routes to `/blog` path   |
+| `example.com/dashboard`   | `/app/dashboard` | Default route (no subdomain)            |
+| `localhost:3000/test`     | `/app/test`      | Localhost uses default route            |
+
+### With Internationalization
+
+| URL                          | Routes to         | Description                   |
+| ---------------------------- | ----------------- | ----------------------------- |
+| `admin.example.com/en/users` | `/en/admin/users` | Admin with English locale     |
+| `blog.example.com/ja/posts`  | `/ja/blog/posts`  | Blog with Japanese locale     |
+| `example.com/users`          | `/en/app/users`   | Default with locale detection |
+
+## API Reference
+
+### `createSubrouterMiddleware(subRoutes, options?)`
+
+Creates a middleware for subdomain-based routing.
+
+#### Parameters
+
+- `subRoutes`: Array of route configurations
+  - `path`: The path to rewrite to (e.g., '/dashboard')
+  - `subdomain`: The subdomain that triggers this route (optional for default route)
+- `options`: Optional configuration
+  - `debug`: Enable debug logging (default: false)
+
+#### Example
+
+```typescript
+const middleware = createSubrouterMiddleware(
+  [
+    { path: "/admin", subdomain: "admin" },
+    { path: "/blog", subdomain: "blog" },
+    { path: "/app" }, // default route
+  ],
+  {
+    debug: true,
+  },
+);
+```
+
+### `createIntlSubrouterMiddleware(subRoutes, intlMiddleware, options)`
+
+Creates a middleware that combines subdomain routing with internationalization.
+
+#### Parameters
+
+- `subRoutes`: Array of route configurations
+- `intlMiddleware`: next-intl middleware function
+- `options`: Configuration object
+  - `debug`: Enable debug logging (default: false)
+  - `locales`: Array of supported locales
+  - `defaultLocale`: Default locale (optional)
+
+#### Example
+
+```typescript
+import createIntlMiddleware from "next-intl/middleware";
+
+const intlMiddleware = createIntlMiddleware({
+  locales: ["en", "ja"],
+  defaultLocale: "en",
+});
+
+const middleware = createIntlSubrouterMiddleware(subRoutes, intlMiddleware, {
+  debug: process.env.NODE_ENV === "development",
+  locales: ["en", "ja"],
+  defaultLocale: "en",
+});
+```
+
+## Configuration
+
+### Route Configuration
+
+```typescript
+type SubRoute = {
+  path: string; // Target path to rewrite to
+  subdomain?: string; // Subdomain trigger (omit for default route)
+};
+```
+
+### Middleware Options
+
+```typescript
+type CreateSubrouterMiddlewareOptions = {
+  debug?: boolean; // Enable debug logging
+};
+
+type CreateIntlSubrouterMiddlewareOptions = {
+  debug?: boolean; // Enable debug logging
+  defaultLocale?: string; // Default locale fallback
+  locales: string[]; // Supported locales
+};
+```
+
+## Advanced Usage
+
+### Local Development Setup
+
+For local development with subdomains, update your `/etc/hosts` file:
+
+```bash
+# /etc/hosts
+127.0.0.1 localhost
+127.0.0.1 admin.localhost
+127.0.0.1 blog.localhost
+```
+
+Then access your application at:
+
+- `http://localhost:3000` (default route)
+- `http://admin.localhost:3000` (admin subdomain)
+- `http://blog.localhost:3000` (blog subdomain)
+
+### Custom Domain Setup
+
+For production deployment with custom domains:
+
+```typescript
+// Works with any domain structure
+const subRoutes = [
+  { path: "/admin", subdomain: "admin" }, // admin.yourdomain.com
+  { path: "/blog", subdomain: "blog" }, // blog.yourdomain.com
+  { path: "/shop", subdomain: "shop" }, // shop.yourdomain.com
+  { path: "/app" }, // yourdomain.com (default)
+];
+```
+
+### Debug Mode
+
+Enable debug logging to see routing decisions:
+
+```typescript
+const middleware = createSubrouterMiddleware(subRoutes, {
+  debug: process.env.NODE_ENV === "development",
+});
+
+// Console output:
+// [createMiddleware] { isDefaultRoute: false, pathname: '/users', routePath: '/admin', routeSubdomain: 'admin', subdomain: 'admin' }
+// [createSubrouterMiddleware] Rewriting: /users -> /admin/users
+```
+
+### Security Features
+
+The middleware automatically prevents direct access to route paths:
+
+- ✅ `admin.example.com/users` → `/admin/users` (allowed)
+- ❌ `example.com/admin/users` → blocked (prevents direct access)
+
+### Error Handling
+
+The middleware validates route configurations and throws errors for:
+
+- Duplicate paths
+- Duplicate subdomains
+- Invalid configurations
+
+```typescript
+// This will throw an error
+const invalidRoutes = [
+  { path: "/admin", subdomain: "admin" },
+  { path: "/admin", subdomain: "dashboard" }, // Duplicate path!
+];
+```
+
+## Requirements
+
+- Next.js 13.0.0 or higher
+- Node.js 18.0.0 or higher
+
+## TypeScript Support
+
+This package is written in TypeScript and includes complete type definitions. All functions and options are fully typed for the best development experience.
+
+## License
+
+MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## Repository
+
+[https://github.com/piro0919/next-subrouter](https://github.com/piro0919/next-subrouter)
