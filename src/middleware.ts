@@ -7,15 +7,15 @@ import {
 
 const subRoutes: SubRoutes = [
   {
-    path: "/hoge",
+    path: "/app",
   },
   {
-    path: "/fuga",
-    subdomain: "fuga",
+    path: "/admin",
+    subdomain: "admin",
   },
   {
-    path: "/piyo",
-    subdomain: "piyo",
+    path: "/blog",
+    subdomain: "blog",
   },
 ];
 const intlMiddleware = createIntlMiddleware(routing);
