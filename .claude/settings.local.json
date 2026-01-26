@@ -15,7 +15,11 @@
       "Bash(cp:*)",
       "Bash(find:*)",
       "Bash(npm run typecheck:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(xargs cat:*)",
+      "Bash(npm run next:build:*)",
+      "Bash(npm run:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }

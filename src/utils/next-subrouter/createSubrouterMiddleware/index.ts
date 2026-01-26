@@ -52,14 +52,19 @@ type RouteResolution = {
 };
 
 type RouteResolver = {
+  configuredSubdomains: Set<string>;
   defaultRoute: null | SubRoute;
   hostnameCache: Map<string, ParsedHostname>;
   subdomainToRouteMap: Map<string | undefined, SubRoute>;
 };
 
+/** Maximum number of hostnames to cache to prevent memory leaks */
+const HOSTNAME_CACHE_MAX_SIZE = 1000;
+
 /**
  * Parse hostname from request with caching for performance
  * Extracts subdomain from host header (e.g., 'admin.example.com' -> 'admin')
+ * Cache is automatically cleared when it exceeds the maximum size
  */
 function parseHostname(
   request: NextRequest,
@@ -74,6 +79,11 @@ function parseHostname(
   const cleanHostname = hostname.split(":")[0];
   const [subdomain] = cleanHostname.split(".");
   const result = { cleanHostname, subdomain };
+
+  // Clear cache if it exceeds the maximum size to prevent memory leaks
+  if (cache.size >= HOSTNAME_CACHE_MAX_SIZE) {
+    cache.clear();
+  }
 
   cache.set(hostname, result);
 
@@ -135,12 +145,22 @@ function createRouteResolver(subRoutes: SubRoutes): RouteResolver {
   const subdomainToRouteMap = new Map<string | undefined, SubRoute>();
   const defaultRoute = subRoutes.find((r) => r.subdomain == null) ?? null;
   const hostnameCache = new Map<string, ParsedHostname>();
+  const configuredSubdomains = new Set<string>();
 
   for (const route of subRoutes) {
     subdomainToRouteMap.set(route.subdomain, route);
+
+    if (route.subdomain !== undefined) {
+      configuredSubdomains.add(route.subdomain);
+    }
   }
 
-  return { defaultRoute, hostnameCache, subdomainToRouteMap };
+  return {
+    configuredSubdomains,
+    defaultRoute,
+    hostnameCache,
+    subdomainToRouteMap,
+  };
 }
 
 /**
@@ -157,15 +177,11 @@ function resolveRoute(
     return { isDefaultRoute: false, route };
   }
 
-  // Get configured subdomains (excluding undefined/default route)
-  const configuredSubdomains = new Set(
-    Array.from(resolver.subdomainToRouteMap.keys()).filter(
-      (s) => s !== undefined,
-    ),
-  );
-
   // Apply default route only for base domain
-  if (resolver.defaultRoute && isBaseDomain(subdomain, configuredSubdomains)) {
+  if (
+    resolver.defaultRoute &&
+    isBaseDomain(subdomain, resolver.configuredSubdomains)
+  ) {
     return { isDefaultRoute: true, route: resolver.defaultRoute };
   }
 
@@ -175,6 +191,7 @@ function resolveRoute(
 /**
  * Determine if direct access to a route path should be blocked
  * Prevents accessing /dashboard/page directly when it should be admin.example.com/page
+ * Returns true if the request should be blocked with a 404 response
  */
 function shouldBlockDirectAccess(
   pathname: string,
@@ -253,9 +270,11 @@ export default function createSubrouterMiddleware(
 
     if (shouldBlockDirectAccess(pathname, route, isDefaultRoute)) {
       if (debug)
-        console.log("[createSubrouterMiddleware] Direct access blocked");
+        console.log(
+          "[createSubrouterMiddleware] Direct access blocked - returning 404",
+        );
 
-      return NextResponse.next();
+      return new NextResponse(null, { status: 404 });
     }
 
     if (isAlreadyRewritten(pathname, route)) {
@@ -270,8 +289,10 @@ export default function createSubrouterMiddleware(
     const url = request.nextUrl.clone();
     // Handle internationalized paths: if pathname starts with /{locale},
     // preserve locale and append route path
-    // eslint-disable-next-line security/detect-unsafe-regex
-    const localeMatch = pathname.match(/^\/([a-z]{2})(\/.*)?$/);
+    // Supports: en, ja, zh-CN, pt-BR, en-US, zh-Hans, etc.
+    const localeMatch = pathname.match(
+      /^\/([a-z]{2,3}(?:-[a-zA-Z]{2,4})?)(\/.*)?$/,
+    );
 
     if (localeMatch && route.path) {
       const [, locale, remainingPath = ""] = localeMatch;

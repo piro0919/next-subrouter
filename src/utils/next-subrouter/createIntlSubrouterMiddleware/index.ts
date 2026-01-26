@@ -44,6 +44,48 @@ function getLocaleFromPath(
   return { isValid, locale, pathWithoutLocale };
 }
 
+type SubrouterMiddleware = ReturnType<typeof createSubrouterMiddleware>;
+
+/**
+ * Process request through subrouter and combine with locale if rewritten
+ */
+async function processWithSubrouterAndLocale(
+  request: NextRequest,
+  pathWithoutLocale: string,
+  locale: string,
+  subrouterMiddleware: SubrouterMiddleware,
+  debug: boolean,
+): Promise<NextResponse> {
+  const modifiedRequest = new NextRequest(
+    new URL(pathWithoutLocale, request.url),
+    request,
+  );
+  const subrouterResponse = await subrouterMiddleware(modifiedRequest);
+  const rewriteHeader = subrouterResponse.headers.get("x-middleware-rewrite");
+
+  if (rewriteHeader) {
+    const rewriteUrl = new URL(rewriteHeader);
+    const subrouterPath = rewriteUrl.pathname;
+
+    rewriteUrl.pathname = `/${locale}${subrouterPath}`;
+
+    if (debug) {
+      console.log(
+        "[createIntlSubrouterMiddleware] Final rewrite with locale:",
+        rewriteUrl.pathname,
+      );
+    }
+
+    const response = NextResponse.rewrite(rewriteUrl);
+
+    response.headers.set("x-locale", locale);
+
+    return response;
+  }
+
+  return subrouterResponse;
+}
+
 /**
  * Create Next.js middleware that combines intl middleware with subdomain routing
  *
@@ -108,131 +150,81 @@ export default function createIntlSubrouterMiddleware(
         );
       }
 
-      // Path already has locale, create new request without locale for subrouter
-      const modifiedRequest = new NextRequest(
-        new URL(pathWithoutLocale, request.url),
+      return processWithSubrouterAndLocale(
         request,
+        pathWithoutLocale,
+        locale,
+        subrouterMiddleware,
+        debug,
       );
-      // Process with subrouter
-      const subrouterResponse = await subrouterMiddleware(modifiedRequest);
+    }
 
-      // If subrouter rewrote, combine locale with subrouter path
-      if (subrouterResponse.headers.get("x-middleware-rewrite")) {
-        const rewriteUrl = new URL(
-          subrouterResponse.headers.get("x-middleware-rewrite")!,
+    if (debug) {
+      console.log(
+        "[createIntlSubrouterMiddleware] No valid locale, delegating to next-intl",
+      );
+    }
+
+    // Let next-intl handle locale detection first
+    const intlResponse = await intlMiddleware(request);
+
+    // If intl redirected, return that response (e.g. /en/sign-in -> /ja/sign-in)
+    if (intlResponse?.headers.get("location")) {
+      if (debug) {
+        console.log(
+          "[createIntlSubrouterMiddleware] next-intl redirected to:",
+          intlResponse.headers.get("location"),
         );
-        // Extract subrouter path and combine with locale
-        // Example: /fuga/some/path -> /ja/fuga/some/path
-        const subrouterPath = rewriteUrl.pathname;
+      }
 
-        rewriteUrl.pathname = `/${locale}${subrouterPath}`;
+      return intlResponse;
+    }
 
+    // If next-intl performed a rewrite (locale detection)
+    const intlRewriteHeader = intlResponse.headers.get("x-middleware-rewrite");
+
+    if (intlRewriteHeader) {
+      const rewriteUrl = new URL(intlRewriteHeader);
+      const {
+        isValid,
+        locale: detectedLocale,
+        pathWithoutLocale: cleanPath,
+      } = getLocaleFromPath(rewriteUrl.pathname, options.locales);
+
+      if (isValid && detectedLocale) {
         if (debug) {
           console.log(
-            "[createIntlSubrouterMiddleware] Final rewrite with locale:",
-            rewriteUrl.pathname,
+            "[createIntlSubrouterMiddleware] next-intl detected locale:",
+            detectedLocale,
+            "cleanPath:",
+            cleanPath,
           );
         }
 
-        const response = NextResponse.rewrite(rewriteUrl);
+        const response = await processWithSubrouterAndLocale(
+          request,
+          cleanPath,
+          detectedLocale,
+          subrouterMiddleware,
+          debug,
+        );
 
-        response.headers.set("x-locale", locale);
+        // If subrouter didn't rewrite, return original intl response
+        if (!response.headers.get("x-middleware-rewrite")) {
+          return intlResponse;
+        }
 
         return response;
       }
-
-      return subrouterResponse;
-    } else {
-      if (debug) {
-        console.log(
-          "[createIntlSubrouterMiddleware] No valid locale, delegating to next-intl",
-        );
-      }
-
-      // Let next-intl handle locale detection first
-      const intlResponse = await intlMiddleware(request);
-
-      // If intl redirected, return that response (e.g. /en/sign-in -> /ja/sign-in)
-      if (intlResponse && intlResponse.headers.get("location")) {
-        if (debug) {
-          console.log(
-            "[createIntlSubrouterMiddleware] next-intl redirected to:",
-            intlResponse.headers.get("location"),
-          );
-        }
-
-        return intlResponse;
-      }
-
-      // If next-intl performed a rewrite (locale detection)
-      if (
-        intlResponse instanceof NextResponse &&
-        intlResponse.headers.get("x-middleware-rewrite")
-      ) {
-        const rewriteUrl = new URL(
-          intlResponse.headers.get("x-middleware-rewrite")!,
-        );
-        const {
-          isValid,
-          locale: detectedLocale,
-          pathWithoutLocale: cleanPath,
-        } = getLocaleFromPath(rewriteUrl.pathname, options.locales);
-
-        if (isValid && detectedLocale) {
-          if (debug) {
-            console.log(
-              "[createIntlSubrouterMiddleware] next-intl detected locale:",
-              detectedLocale,
-              "cleanPath:",
-              cleanPath,
-            );
-          }
-
-          // Create request without locale for subrouter
-          const modifiedRequest = new NextRequest(
-            new URL(cleanPath, request.url),
-            request,
-          );
-          // Process with subrouter
-          const subrouterResponse = await subrouterMiddleware(modifiedRequest);
-
-          // If subrouter rewrote, combine locale with subrouter path
-          if (subrouterResponse.headers.get("x-middleware-rewrite")) {
-            const finalRewriteUrl = new URL(
-              subrouterResponse.headers.get("x-middleware-rewrite")!,
-            );
-            // Extract subrouter path and combine with detected locale
-            const subrouterPath = finalRewriteUrl.pathname;
-
-            finalRewriteUrl.pathname = `/${detectedLocale}${subrouterPath}`;
-
-            if (debug) {
-              console.log(
-                "[createIntlSubrouterMiddleware] Final rewrite after intl detection:",
-                finalRewriteUrl.pathname,
-              );
-            }
-
-            const response = NextResponse.rewrite(finalRewriteUrl);
-
-            response.headers.set("x-locale", detectedLocale);
-
-            return response;
-          }
-
-          // No subrouter rewrite needed, return intl response
-          return intlResponse;
-        }
-      }
-
-      // No intl rewrite, continue with subrouter
-      if (debug) {
-        console.log(
-          "[createIntlSubrouterMiddleware] No intl rewrite, continuing with subrouter",
-        );
-      }
-
-      return subrouterMiddleware(request);
     }
+
+    // No intl rewrite, continue with subrouter
+    if (debug) {
+      console.log(
+        "[createIntlSubrouterMiddleware] No intl rewrite, continuing with subrouter",
+      );
+    }
+
+    return subrouterMiddleware(request);
   };
 }
