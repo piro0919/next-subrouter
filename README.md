@@ -106,6 +106,22 @@ Without `locale`, the target subdomain uses its default locale.
 
 Set `NEXT_PUBLIC_BASE_DOMAIN=example.com` in production, or it auto-detects from the current host.
 
+### `useSubdomain`
+
+Get the current subdomain in client components.
+
+```tsx
+import { useSubdomain } from "next-subrouter";
+
+function Header() {
+  const subdomain = useSubdomain();
+  // subdomain = "admin" on admin.example.com
+  // subdomain = null on example.com
+
+  return <nav>{subdomain === "admin" && <AdminMenu />}</nav>;
+}
+```
+
 ## Local Development
 
 Add to `/etc/hosts`:

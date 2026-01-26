@@ -14,3 +14,5 @@ export {
   default as SubdomainLink,
   type SubdomainLinkProps,
 } from "./SubdomainLink";
+
+export { default as useSubdomain } from "./useSubdomain";
