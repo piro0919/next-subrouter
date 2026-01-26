@@ -1,14 +1,60 @@
 {
-  "Fuga": {
-    "fuga": "Hello Fuga!",
-    "fugara": "Hello Fugara!"
+  "Admin": {
+    "description": "Manage system settings and users",
+    "title": "Admin Panel",
+    "users": "User Management"
   },
-  "Hoge": {
-    "hoge": "Hello Hoge!",
-    "hogera": "Hello Hogera!"
+  "App": {
+    "dashboard": "Dashboard",
+    "dashboardDescription": "This is the app dashboard. Manage your settings and view analytics.",
+    "description": "Subdomain-based routing middleware for Next.js",
+    "feature1": "Route subdomains to paths",
+    "feature2": "i18n support with next-intl",
+    "feature3": "Cross-subdomain navigation",
+    "keepLocale": "Keep locale",
+    "resetLocale": "Reset locale",
+    "statProjects": "Projects",
+    "statTasks": "Tasks",
+    "statUptime": "Uptime",
+    "subtitle": "Map subdomains to internal paths",
+    "title": "next-subrouter",
+    "tryDemo": "Try the demo"
   },
-  "Piyo": {
-    "piyo": "Hello Piyo!",
-    "piyora": "Hello Piyora!"
+  "Blog": {
+    "allPosts": "All Posts",
+    "allPostsDescription": "Browse all published blog posts.",
+    "description": "Latest news and technical articles",
+    "post1Excerpt": "Explore the latest trends shaping the industry and what they mean for your business.",
+    "post1Title": "Industry Trends for 2024",
+    "post2Excerpt": "Tips and strategies to help your team work more efficiently and achieve better results.",
+    "post2Title": "How to Boost Team Productivity",
+    "post3Excerpt": "A step-by-step guide to creating a better experience for your customers.",
+    "post3Title": "Improving Customer Experience",
+    "post4Excerpt": "Learn the fundamentals of data-driven decision making for modern businesses.",
+    "post4Title": "Introduction to Data Analytics",
+    "posts": "Latest Posts",
+    "title": "Blog",
+    "viewAll": "View all posts →"
+  },
+  "Common": {
+    "backToHome": "Back to Home",
+    "currentLocale": "Current locale",
+    "currentSubdomain": "Current subdomain",
+    "goToAdmin": "Go to Admin",
+    "goToBlog": "Go to Blog",
+    "goToDashboard": "Go to Dashboard",
+    "goToHome": "Go to Home",
+    "goToPosts": "Go to Posts",
+    "goToUsers": "Go to Users",
+    "switchLanguage": "Switch to Japanese"
+  },
+  "Users": {
+    "description": "Manage users, roles, and permissions.",
+    "name": "Name",
+    "role": "Role",
+    "status": "Status",
+    "statusActive": "Active",
+    "statusInactive": "Inactive",
+    "title": "User Management"
   }
 }

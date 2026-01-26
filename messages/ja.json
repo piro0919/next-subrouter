@@ -1,14 +1,60 @@
 {
-  "Fuga": {
-    "fuga": "こんにちは ふが！",
-    "fugara": "こんにちは ふがら！"
+  "Admin": {
+    "description": "システム全体の設定やユーザーを管理できます",
+    "title": "管理画面",
+    "users": "ユーザー管理"
   },
-  "Hoge": {
-    "hoge": "こんにちは ほげ！",
-    "hogera": "こんにちは ほげら！"
+  "App": {
+    "dashboard": "ダッシュボード",
+    "dashboardDescription": "アプリのダッシュボードです。設定の管理や分析の確認ができます。",
+    "description": "Next.js のためのサブドメインベースルーティングミドルウェア",
+    "feature1": "サブドメインをパスにルーティング",
+    "feature2": "next-intl による多言語対応",
+    "feature3": "サブドメイン間ナビゲーション",
+    "keepLocale": "ロケール維持",
+    "resetLocale": "ロケールリセット",
+    "statProjects": "プロジェクト",
+    "statTasks": "タスク",
+    "statUptime": "稼働率",
+    "subtitle": "サブドメインを内部パスにマッピング",
+    "title": "next-subrouter",
+    "tryDemo": "デモを試す"
   },
-  "Piyo": {
-    "piyo": "こんにちは ぴよ！",
-    "piyora": "こんにちは ぴよら！"
+  "Blog": {
+    "allPosts": "すべての投稿",
+    "allPostsDescription": "すべての公開記事を閲覧できます。",
+    "description": "最新のニュースや技術記事をお届けします",
+    "post1Excerpt": "業界を形作る最新トレンドと、ビジネスへの影響を探ります。",
+    "post1Title": "2024年の業界トレンド",
+    "post2Excerpt": "チームの効率を高め、より良い成果を達成するためのヒントと戦略。",
+    "post2Title": "チームの生産性を向上させる方法",
+    "post3Excerpt": "顧客体験を向上させるためのステップバイステップガイド。",
+    "post3Title": "カスタマーエクスペリエンスの改善",
+    "post4Excerpt": "現代ビジネスにおけるデータドリブンな意思決定の基礎を学びます。",
+    "post4Title": "データ分析入門",
+    "posts": "最新の投稿",
+    "title": "ブログ",
+    "viewAll": "すべての投稿を見る →"
+  },
+  "Common": {
+    "backToHome": "ホームに戻る",
+    "currentLocale": "現在のロケール",
+    "currentSubdomain": "現在のサブドメイン",
+    "goToAdmin": "管理画面へ",
+    "goToBlog": "ブログへ",
+    "goToDashboard": "ダッシュボードへ",
+    "goToHome": "ホームへ",
+    "goToPosts": "投稿一覧へ",
+    "goToUsers": "ユーザー管理へ",
+    "switchLanguage": "英語に切り替え"
+  },
+  "Users": {
+    "description": "ユーザー、ロール、権限を管理します。",
+    "name": "名前",
+    "role": "ロール",
+    "status": "ステータス",
+    "statusActive": "有効",
+    "statusInactive": "無効",
+    "title": "ユーザー管理"
   }
 }
