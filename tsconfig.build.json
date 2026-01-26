@@ -2,6 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "declarationMap": true,
+    "jsx": "react-jsx",
     "module": "commonjs",
     "moduleResolution": "node",
     "noEmit": false,
@@ -18,6 +19,7 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/utils/next-subrouter/index.ts",
-    "src/utils/next-subrouter/**/*.ts"
+    "src/utils/next-subrouter/**/*.ts",
+    "src/utils/next-subrouter/**/*.tsx"
   ]
 }
