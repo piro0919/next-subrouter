@@ -1,19 +1,14 @@
 # next-subrouter
 
-Next.js subdomain-based routing middleware with optional internationalization support.
+Subdomain-based routing middleware for Next.js.
 
-A simple approach to organizing different feature domains within a single Next.js application.
+Route `admin.example.com` to `/admin`, `blog.example.com` to `/blog` — without splitting your app into multiple projects.
 
-## Features
+## Why?
 
-- 🌐 **Subdomain-based routing** - Route requests from subdomains to specific paths
-- 🌍 **Internationalization support** - Seamless integration with next-intl
-- ⚡ **High performance** - Built-in caching for hostname parsing
-- 🛡️ **Type-safe** - Full TypeScript support
-- 🐛 **Debug mode** - Optional logging for development
-- 🔒 **Security** - Prevents direct access to route paths
+Next.js doesn't natively support subdomain routing. You could use Vercel's `rewrites` config, but it gets messy with i18n or dynamic logic. This package gives you a clean, declarative API that works in middleware.
 
-## Installation
+## Install
 
 ```bash
 npm install next-subrouter
@@ -21,52 +16,15 @@ npm install next-subrouter
 
 ## Quick Start
 
-### Basic Subdomain Routing
-
 ```typescript
 // middleware.ts
 import { createSubrouterMiddleware } from "next-subrouter";
 
-const subRoutes = [
+export const middleware = createSubrouterMiddleware([
   { path: "/admin", subdomain: "admin" },
   { path: "/blog", subdomain: "blog" },
-  { path: "/app" }, // default route (no subdomain)
-];
-
-export const middleware = createSubrouterMiddleware(subRoutes, {
-  debug: process.env.NODE_ENV === "development",
-});
-
-export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
-};
-```
-
-### With Internationalization (next-intl)
-
-```typescript
-// middleware.ts
-import { createIntlSubrouterMiddleware } from "next-subrouter";
-import createIntlMiddleware from "next-intl/middleware";
-import { routing } from "./i18n/routing";
-
-const intlMiddleware = createIntlMiddleware(routing);
-
-const subRoutes = [
-  { path: "/admin", subdomain: "admin" },
-  { path: "/blog", subdomain: "blog" },
-  { path: "/app" },
-];
-
-export const middleware = createIntlSubrouterMiddleware(
-  subRoutes,
-  intlMiddleware,
-  {
-    debug: process.env.NODE_ENV === "development",
-    locales: ["en", "ja"],
-    defaultLocale: "en",
-  },
-);
+  { path: "/app" }, // default (no subdomain)
+]);
 
 export const config = {
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
@@ -75,224 +33,105 @@ export const config = {
 
 ## How It Works
 
-### Subdomain Routing Examples
+| Request                    | Routed to        | Notes                 |
+| -------------------------- | ---------------- | --------------------- |
+| `admin.example.com/users`  | `/admin/users`   | Subdomain match       |
+| `blog.example.com/posts`   | `/blog/posts`    | Subdomain match       |
+| `example.com/dashboard`    | `/app/dashboard` | Default route         |
+| `example.com/admin/users`  | 404              | Direct access blocked |
 
-| URL                       | Routes to        | Description                             |
-| ------------------------- | ---------------- | --------------------------------------- |
-| `admin.example.com/users` | `/admin/users`   | Admin subdomain routes to `/admin` path |
-| `blog.example.com/posts`  | `/blog/posts`    | Blog subdomain routes to `/blog` path   |
-| `example.com/dashboard`   | `/app/dashboard` | Default route (no subdomain)            |
-| `localhost:3000/test`     | `/app/test`      | Localhost uses default route            |
+## API
 
-### With Internationalization
+### `createSubrouterMiddleware(routes, options?)`
 
-| URL                          | Routes to         | Description                   |
-| ---------------------------- | ----------------- | ----------------------------- |
-| `admin.example.com/en/users` | `/en/admin/users` | Admin with English locale     |
-| `blog.example.com/ja/posts`  | `/ja/blog/posts`  | Blog with Japanese locale     |
-| `example.com/users`          | `/en/app/users`   | Default with locale detection |
-
-## API Reference
-
-### `SubdomainLink`
-
-A React component for cross-subdomain navigation.
+Basic subdomain routing.
 
 ```typescript
-import { SubdomainLink } from "next-subrouter";
-
-<SubdomainLink
-  subdomain="admin"
-  href="/dashboard"
-  className="nav-link"
->
-  Admin Dashboard
-</SubdomainLink>
-```
-
-### `createSubrouterMiddleware(subRoutes, options?)`
-
-Creates a middleware for subdomain-based routing.
-
-#### Parameters
-
-- `subRoutes`: Array of route configurations
-  - `path`: The path to rewrite to (e.g., '/dashboard')
-  - `subdomain`: The subdomain that triggers this route (optional for default route)
-- `options`: Optional configuration
-  - `debug`: Enable debug logging (default: false)
-
-#### Example
-
-```typescript
-const middleware = createSubrouterMiddleware(
+createSubrouterMiddleware(
   [
     { path: "/admin", subdomain: "admin" },
-    { path: "/blog", subdomain: "blog" },
-    { path: "/app" }, // default route
+    { path: "/app" }, // default
   ],
-  {
-    debug: true,
-  },
+  { debug: true }
 );
 ```
 
-### `createIntlSubrouterMiddleware(subRoutes, intlMiddleware, options)`
+### `createIntlSubrouterMiddleware(routes, intlMiddleware, options)`
 
-Creates a middleware that combines subdomain routing with internationalization.
-
-#### Parameters
-
-- `subRoutes`: Array of route configurations
-- `intlMiddleware`: next-intl middleware function
-- `options`: Configuration object
-  - `debug`: Enable debug logging (default: false)
-  - `locales`: Array of supported locales
-  - `defaultLocale`: Default locale (optional)
-
-#### Example
+Subdomain routing + [next-intl](https://next-intl-docs.vercel.app/) integration.
 
 ```typescript
+import { createIntlSubrouterMiddleware } from "next-subrouter";
 import createIntlMiddleware from "next-intl/middleware";
+import { routing } from "./i18n/routing";
 
-const intlMiddleware = createIntlMiddleware({
-  locales: ["en", "ja"],
-  defaultLocale: "en",
-});
-
-const middleware = createIntlSubrouterMiddleware(subRoutes, intlMiddleware, {
-  debug: process.env.NODE_ENV === "development",
-  locales: ["en", "ja"],
-  defaultLocale: "en",
-});
+export const middleware = createIntlSubrouterMiddleware(
+  [
+    { path: "/admin", subdomain: "admin" },
+    { path: "/app" },
+  ],
+  createIntlMiddleware(routing),
+  { locales: ["en", "ja"], defaultLocale: "en" }
+);
 ```
 
-## Configuration
+| Request                      | Routed to           |
+| ---------------------------- | ------------------- |
+| `admin.example.com/en/users` | `/en/admin/users`   |
+| `example.com/dashboard`      | `/en/app/dashboard` |
 
-### Environment Variables
+### `SubdomainLink`
 
-```bash
-# .env.local or .env
-NEXT_PUBLIC_BASE_DOMAIN=your-domain.com  # Optional: Base domain for SubdomainLink
-```
+Navigate between subdomains. Regular `<Link>` won't work across subdomains.
 
-### Route Configuration
-
-```typescript
-type SubRoute = {
-  path: string; // Target path to rewrite to
-  subdomain?: string; // Subdomain trigger (omit for default route)
-};
-```
-
-### Middleware Options
-
-```typescript
-type CreateSubrouterMiddlewareOptions = {
-  debug?: boolean; // Enable debug logging
-};
-
-type CreateIntlSubrouterMiddlewareOptions = {
-  debug?: boolean; // Enable debug logging
-  defaultLocale?: string; // Default locale fallback
-  locales: string[]; // Supported locales
-};
-```
-
-## Cross-Subdomain Navigation
-
-### SubdomainLink Component
-
-For navigating between different subdomains, use the provided `SubdomainLink` component. Regular Next.js `Link` components only work within the same domain.
-
-```typescript
-// Import the component
+```tsx
 import { SubdomainLink } from "next-subrouter";
 
-// Navigate to different subdomains
-<SubdomainLink subdomain="admin" href="/users">
-  Go to Admin
-</SubdomainLink>
-
-<SubdomainLink subdomain="blog" href="/posts">
-  Go to Blog
-</SubdomainLink>
-
-// Navigate to base domain (no subdomain)
-<SubdomainLink href="/home">
-  Go to Home
-</SubdomainLink>
+<SubdomainLink subdomain="admin" href="/users">Go to Admin</SubdomainLink>
+<SubdomainLink href="/home">Go to Home</SubdomainLink>  // base domain
 ```
 
-#### SubdomainLink Props
+#### Preserving Locale
 
-```typescript
-type SubdomainLinkProps = {
-  children: ReactNode;
-  className?: string;
-  href?: string; // Default: "/"
-  subdomain?: string; // Omit for base domain
-};
+Pass the `locale` prop to maintain the current locale when navigating:
+
+```tsx
+<SubdomainLink subdomain="admin" href="/users" locale="ja">
+  Go to Admin (keeps Japanese)
+</SubdomainLink>
+// Result: https://admin.example.com/ja/users
 ```
 
-#### Base Domain Configuration
+Without `locale`, the target subdomain uses its default locale.
 
-The component supports two ways to determine the base domain:
+Set `NEXT_PUBLIC_BASE_DOMAIN=example.com` in production, or it auto-detects from the current host.
 
-1. **Environment Variable (Recommended)**:
+## Local Development
 
-   ```bash
-   # .env.local
-   NEXT_PUBLIC_BASE_DOMAIN=your-domain.com
-   ```
+Add to `/etc/hosts`:
 
-2. **Automatic Detection (Fallback)**:
-   - Detects from current hostname
-   - Works for localhost and most domain structures
+```text
+127.0.0.1 admin.localhost
+127.0.0.1 blog.localhost
+```
 
-#### Examples with Base Domain
+Then visit `http://admin.localhost:3000`.
 
-With `NEXT_PUBLIC_BASE_DOMAIN=next-subrouter.kkweb.io`:
+## i18n Setup
 
-- From `https://next-subrouter.kkweb.io/hoge` → `https://piyo.next-subrouter.kkweb.io/hoge`
-- From `https://fuga.next-subrouter.kkweb.io/fuga` → `https://piyo.next-subrouter.kkweb.io/fuga`
-- From any subdomain → `https://next-subrouter.kkweb.io/current-path` (when no subdomain specified)
-
-The component automatically handles:
-
-- **Development**: `admin.localhost:3001` → `localhost:3001`
-- **Production**: `admin.your-domain.com` → `your-domain.com`
-
-## Internationalization Setup
-
-When using `createIntlSubrouterMiddleware`, you need to configure the request handler to work with subdomain routing.
-
-### Request Configuration
+When using `createIntlSubrouterMiddleware`, update your `src/i18n/request.ts` to read the `x-locale` header set by the middleware:
 
 ```typescript
-// src/i18n/request.ts
-import { hasLocale } from "next-intl";
 import { getRequestConfig } from "next-intl/server";
+import { headers } from "next/headers";
 import { routing } from "./routing";
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  // Try to get locale from requestLocale first
   let locale = await requestLocale;
 
-  // If requestLocale is not available, try to get from custom header set by middleware
-  if (!hasLocale(routing.locales, locale)) {
-    const { headers } = await import("next/headers");
+  if (!routing.locales.includes(locale as any)) {
     const headersList = await headers();
-    const headerLocale = headersList.get("x-locale");
-
-    if (hasLocale(routing.locales, headerLocale)) {
-      locale = headerLocale;
-    }
-  }
-
-  // Fallback to default locale if still not found
-  if (!hasLocale(routing.locales, locale)) {
-    locale = routing.defaultLocale;
+    locale = headersList.get("x-locale") ?? routing.defaultLocale;
   }
 
   return {
@@ -302,101 +141,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
 });
 ```
 
-This configuration:
-
-1. First tries to use the standard `requestLocale`
-2. Falls back to the `x-locale` header set by the middleware
-3. Uses the default locale as a final fallback
-
-This ensures proper locale detection when routes are rewritten by the subdomain middleware.
-
-## Advanced Usage
-
-### Local Development Setup
-
-For local development with subdomains, update your `/etc/hosts` file:
-
-```bash
-# /etc/hosts
-127.0.0.1 localhost
-127.0.0.1 admin.localhost
-127.0.0.1 blog.localhost
-```
-
-Then access your application at:
-
-- `http://localhost:3000` (default route)
-- `http://admin.localhost:3000` (admin subdomain)
-- `http://blog.localhost:3000` (blog subdomain)
-
-### Custom Domain Setup
-
-For production deployment with custom domains:
-
-```typescript
-// Works with any domain structure
-const subRoutes = [
-  { path: "/admin", subdomain: "admin" }, // admin.yourdomain.com
-  { path: "/blog", subdomain: "blog" }, // blog.yourdomain.com
-  { path: "/shop", subdomain: "shop" }, // shop.yourdomain.com
-  { path: "/app" }, // yourdomain.com (default)
-];
-```
-
-### Debug Mode
-
-Enable debug logging to see routing decisions:
-
-```typescript
-const middleware = createSubrouterMiddleware(subRoutes, {
-  debug: process.env.NODE_ENV === "development",
-});
-
-// Console output:
-// [createMiddleware] { isDefaultRoute: false, pathname: '/users', routePath: '/admin', routeSubdomain: 'admin', subdomain: 'admin' }
-// [createSubrouterMiddleware] Rewriting: /users -> /admin/users
-```
-
-### Security Features
-
-The middleware automatically prevents direct access to route paths:
-
-- ✅ `admin.example.com/users` → `/admin/users` (allowed)
-- ❌ `example.com/admin/users` → blocked (prevents direct access)
-
-### Error Handling
-
-The middleware validates route configurations and throws errors for:
-
-- Duplicate paths
-- Duplicate subdomains
-- Invalid configurations
-
-```typescript
-// This will throw an error
-const invalidRoutes = [
-  { path: "/admin", subdomain: "admin" },
-  { path: "/admin", subdomain: "dashboard" }, // Duplicate path!
-];
-```
-
 ## Requirements
 
-- Next.js 13.0.0 or higher
-- Node.js 18.0.0 or higher
-
-## TypeScript Support
-
-This package is written in TypeScript and includes complete type definitions. All functions and options are fully typed for the best development experience.
+- Next.js >= 13.0.0
+- Node.js >= 18.0.0
 
 ## License
 
 MIT
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Repository
-
-[https://github.com/piro0919/next-subrouter](https://github.com/piro0919/next-subrouter)
