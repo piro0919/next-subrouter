@@ -71,6 +71,9 @@ export default function Page(): React.JSX.Element {
           </Link>
         </div>
       </div>
+      <div className={styles.install}>
+        <code className={styles.installCmd}>npm install next-subrouter</code>
+      </div>
       <div className={styles.footer}>
         <button
           onClick={() =>
@@ -86,6 +89,22 @@ export default function Page(): React.JSX.Element {
         <span className={styles.info}>
           {common("currentLocale")}: {locale}
         </span>
+        <a
+          className={styles.repoLink}
+          href="https://github.com/piro0919/next-subrouter"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          GitHub
+        </a>
+        <a
+          className={styles.repoLink}
+          href="https://www.npmjs.com/package/next-subrouter"
+          rel="noopener noreferrer"
+          target="_blank"
+        >
+          npm
+        </a>
       </div>
     </div>
   );

@@ -143,3 +143,32 @@
   font-size: 1.4rem;
   opacity: 0.8;
 }
+
+.install {
+  margin-top: 3.2rem;
+  display: flex;
+  justify-content: center;
+}
+
+.installCmd {
+  background: rgb(0 0 0 / 0.3);
+  border: 1px solid rgb(255 255 255 / 0.2);
+  border-radius: 6px;
+  color: white;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.4rem;
+  padding: 0.8rem 1.6rem;
+}
+
+.repoLink {
+  color: rgb(255 255 255 / 0.85);
+  font-size: 1.4rem;
+  text-decoration: none;
+  border-bottom: 1px solid rgb(255 255 255 / 0.4);
+  padding-bottom: 1px;
+}
+
+.repoLink:hover {
+  color: white;
+  border-bottom-color: white;
+}
