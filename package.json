@@ -10,6 +10,7 @@
     "@eslint/eslintrc": "^3",
     "@eslint/js": "9.29.0",
     "@secretlint/secretlint-rule-preset-recommend": "9.3.4",
+    "@testing-library/react": "16.3.2",
     "@total-typescript/ts-reset": "0.6.1",
     "@types/node": "^20",
     "@types/react": "^19",
@@ -32,6 +33,7 @@
     "eslint-plugin-security": "3.0.1",
     "eslint-plugin-unused-imports": "4.1.4",
     "eslint-plugin-write-good-comments": "0.2.0",
+    "jsdom": "29.1.1",
     "lefthook": "1.11.13",
     "next": "15.4.10",
     "next-intl": "4.3.4",
@@ -49,7 +51,9 @@
     "stylelint-high-performance-animation": "1.11.0",
     "stylelint-no-unused-selectors": "1.0.40",
     "stylelint-order": "7.0.0",
-    "typescript": "^5"
+    "tsup": "8.5.1",
+    "typescript": "^5",
+    "vitest": "4.1.6"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -67,7 +71,7 @@
     "internationalization"
   ],
   "license": "MIT",
-  "main": "dist/index.js",
+  "main": "./dist/index.cjs",
   "name": "next-subrouter",
   "overrides": {
     "stylelint-css-modules-no-global-scoped-selector": {
@@ -85,7 +89,7 @@
     "url": "https://github.com/piro0919/next-subrouter"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup",
     "build:demo": "next build",
     "dev": "next dev --turbopack",
     "dev:demo": "next dev --turbopack",
@@ -95,12 +99,24 @@
     "lint:secret": "npx secretlint --maskSecrets '**/*'",
     "lint:style": "stylelint --fix '**/*.css'",
     "postbuild:demo": "next-sitemap",
-    "prepublishOnly": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm test && pnpm build",
     "prettier": "prettier --write .",
     "secretlint": "secretlint '**/*'",
     "start": "next start",
     "type-check": "tsc --noemit"
   },
-  "types": "dist/index.d.ts",
-  "version": "0.1.7"
+  "types": "./dist/index.d.ts",
+  "version": "1.0.0",
+  "module": "./dist/index.js",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "sideEffects": false
 }

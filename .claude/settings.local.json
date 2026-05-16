@@ -19,7 +19,13 @@
       "Bash(xargs cat:*)",
       "Bash(npm run next:build:*)",
       "Bash(npm run:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(npm publish)",
+      "Bash(npm login)",
+      "Bash(npm publish:*)",
+      "Bash(npm install:*)",
+      "Bash(npm view:*)"
     ],
     "deny": []
   }
