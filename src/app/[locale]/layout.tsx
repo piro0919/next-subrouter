@@ -12,6 +12,7 @@ const notoSans = Noto_Sans({
 
 export const metadata: Metadata = {
   description: "Next Subrouter",
+  metadataBase: new URL("https://next-subrouter.kkweb.io"),
   title: "Next Subrouter",
 };
 
