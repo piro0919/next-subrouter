@@ -1,4 +1,5 @@
 // eslint-disable-next-line filenames/match-exported
+import { Analytics } from "@vercel/analytics/next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { Noto_Sans } from "next/font/google";
 import "./globals.css";
@@ -34,6 +35,7 @@ export default async function RootLayout({
     <html lang={locale}>
       <body className={`${notoSans.className}`}>
         <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <Analytics />
       </body>
     </html>
   );
