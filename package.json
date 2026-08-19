@@ -72,6 +72,7 @@
     "i18n",
     "internationalization"
   ],
+  "author": "piro0919 <piro.haniwa@gmail.com> (https://kkweb.io/)",
   "license": "MIT",
   "main": "./dist/index.cjs",
   "name": "next-subrouter",
