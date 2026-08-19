@@ -10,12 +10,34 @@ import type { Metadata } from "next";
 const notoSans = Noto_Sans({
   subsets: ["latin"],
 });
+const SITE_URL = "https://next-subrouter.kkweb.io";
 
-export const metadata: Metadata = {
-  description: "Next Subrouter",
-  metadataBase: new URL("https://next-subrouter.kkweb.io"),
-  title: "Next Subrouter",
-};
+// localePrefix が as-needed なので、既定ロケールだけ接頭辞が付かない。
+// canonical と hreflang が無いと en と ja が重複ページ扱いになる。
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const path = locale === routing.defaultLocale ? "/" : `/${locale}`;
+
+  return {
+    alternates: {
+      canonical: path,
+      languages: Object.fromEntries(
+        routing.locales.map((one) => [
+          one,
+          one === routing.defaultLocale ? "/" : `/${one}`,
+        ]),
+      ),
+    },
+    description: "Next Subrouter",
+    metadataBase: new URL(SITE_URL),
+    openGraph: { url: path },
+    title: "Next Subrouter",
+  };
+}
 
 export default async function RootLayout({
   children,
