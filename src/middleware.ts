@@ -33,6 +33,12 @@ export const middleware = createIntlSubrouterMiddleware(
 export const config = {
   // Match all pathnames except for
   // - … if they start with `/api`, `/trpc`, `/_next` or `/_vercel`
+  // - … Next が生成する metadata のルート（末尾が opengraph-image など）
   // - … the ones containing a dot (e.g. `favicon.ico`)
-  matcher: "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+  //
+  // metadata のルートはドットを含まず、ロケール接頭辞が付くと先頭一致でも
+  // 除外できない。末尾で判定しないとここで飲まれて 404 になり、
+  // og:image が 404 を指したまま公開されてしまう。
+  matcher:
+    "/((?!api|trpc|_next|_vercel|.*\\..*)(?!.*/(?:opengraph-image|twitter-image|icon|apple-icon)$).*)",
 };
