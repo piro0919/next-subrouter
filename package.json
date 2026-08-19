@@ -63,6 +63,7 @@
     "dist"
   ],
   "homepage": "https://next-subrouter.kkweb.io",
+  "funding": "https://github.com/sponsors/piro0919",
   "keywords": [
     "nextjs",
     "middleware",
