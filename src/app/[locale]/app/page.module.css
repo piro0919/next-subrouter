@@ -15,6 +15,7 @@
 }
 
 .title {
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
   font-size: 4.8rem;
   font-weight: 700;
   letter-spacing: -0.02em;

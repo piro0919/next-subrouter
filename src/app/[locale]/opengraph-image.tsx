@@ -1,11 +1,21 @@
 /* eslint-disable filenames/match-exported, filenames/match-regex */
 import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { cwd } from "node:process";
+import { routing } from "@/i18n/routing";
 
 export const alt = "next-subrouter";
 
 export const size = { height: 630, width: 1200 };
 
 export const contentType = "image/png";
+
+/* ビルド時に焼く。動的なままだと assets/ が関数側に含まれず、
+   本番でフォントを読めずに 500 になる */
+export function generateStaticParams(): { locale: string }[] {
+  return routing.locales.map((locale) => ({ locale }));
+}
 
 const TITLE = "next-subrouter";
 const DESCRIPTION =
@@ -15,7 +25,13 @@ const ROUTES = [
   { from: "admin.example.com", to: "/admin" },
 ];
 
-export default function Image(): ImageResponse {
+export default async function Image(): Promise<ImageResponse> {
+  /* 見出しの書体はサイトと同じ Zen Kaku Gothic Antique。使う文字だけに
+     絞ったものを同梱している。文言を変えたら assets/README.md の手順で作り直す */
+  const font = await readFile(
+    join(cwd(), "assets/ZenKakuGothicAntique-Bold-subset.ttf"),
+  );
+
   return new ImageResponse(
     (
       <div
@@ -126,6 +142,16 @@ export default function Image(): ImageResponse {
         </div>
       </div>
     ),
-    size,
+    {
+      ...size,
+      fonts: [
+        {
+          data: font,
+          name: "Zen Kaku Gothic Antique",
+          style: "normal",
+          weight: 700,
+        },
+      ],
+    },
   );
 }
