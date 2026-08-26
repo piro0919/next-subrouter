@@ -1,7 +1,11 @@
 # pnpm 11 は、ビルドスクリプトを持つ依存を明示するまで install を失敗させる。
 # esbuild は tsup が、sharp は next の画像最適化が、lefthook は git hook の設置に、
 # unrs-resolver は eslint の import 解決に使う。
+# @parcel/watcher と @swc/core は依存更新で入ってきたもので、next は自前の SWC
+# バイナリを持ち、ここではウォッチャーも使わないので走らせない。
 allowBuilds:
+  '@parcel/watcher': false
+  '@swc/core': false
   esbuild: true
   lefthook: true
   sharp: true
