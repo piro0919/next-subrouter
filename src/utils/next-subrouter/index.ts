@@ -1,18 +1,19 @@
 export {
   default as createIntlSubrouterMiddleware,
-  type IntlMiddleware,
+  default as createIntlSubrouterProxy,
   type CreateIntlSubrouterMiddlewareOptions,
+  type CreateIntlSubrouterMiddlewareOptions as CreateIntlSubrouterProxyOptions,
+  type IntlMiddleware,
 } from "./createIntlSubrouterMiddleware";
 
 export {
   default as createSubrouterMiddleware,
-  type SubRoutes,
+  default as createSubrouterProxy,
   type CreateSubrouterMiddlewareOptions,
+  type CreateSubrouterMiddlewareOptions as CreateSubrouterProxyOptions,
+  type SubRoute,
+  type SubRoutes,
+  type UnknownSubdomainBehavior,
 } from "./createSubrouterMiddleware";
 
-export {
-  default as SubdomainLink,
-  type SubdomainLinkProps,
-} from "./SubdomainLink";
-
-export { default as useSubdomain } from "./useSubdomain";
+export { default as getSubdomain, type RootDomain } from "./getSubdomain";

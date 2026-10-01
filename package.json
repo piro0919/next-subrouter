@@ -2,7 +2,7 @@
   "bugs": {
     "url": "https://github.com/piro0919/next-subrouter/issues"
   },
-  "description": "Next.js subdomain-based routing middleware with optional internationalization support",
+  "description": "Next.js subdomain-based routing for middleware.ts and proxy.ts, with optional next-intl support",
   "devDependencies": {
     "@arethetypeswrong/cli": "0.18.5",
     "@commitlint/cli": "19.8.1",
@@ -59,7 +59,7 @@
     "vitest": "4.1.10"
   },
   "engines": {
-    "node": ">=18.20.8"
+    "node": ">=18"
   },
   "files": [
     "dist"
@@ -72,7 +72,8 @@
     "subdomain",
     "routing",
     "i18n",
-    "internationalization"
+    "internationalization",
+    "proxy"
   ],
   "author": "piro0919 <piro.haniwa@gmail.com> (https://kkweb.io/)",
   "license": "MIT",
@@ -87,14 +88,15 @@
     }
   },
   "peerDependencies": {
-    "next": ">=13.5.11"
+    "next": ">=13.5.11 <17",
+    "react": "^18.0.0 || ^19.0.0"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/piro0919/next-subrouter"
+    "url": "git+https://github.com/piro0919/next-subrouter.git"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && tsup",
     "build:demo": "next build",
     "dev": "next dev",
     "dev:demo": "next dev",
@@ -118,10 +120,33 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./client": {
+      "import": {
+        "types": "./dist/client.d.ts",
+        "default": "./dist/client.js"
+      },
+      "require": {
+        "types": "./dist/client.d.cts",
+        "default": "./dist/client.cjs"
+      }
+    },
+    "./package.json": "./package.json"
   },
-  "sideEffects": false
+  "sideEffects": false,
+  "typesVersions": {
+    "*": {
+      "client": [
+        "./dist/client.d.ts"
+      ]
+    }
+  }
 }

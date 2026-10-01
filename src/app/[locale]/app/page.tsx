@@ -1,7 +1,7 @@
 "use client";
 import { useLocale, useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { SubdomainLink } from "@/utils/next-subrouter";
+import { SubdomainLink } from "@/utils/next-subrouter/client";
 import styles from "./page.module.css";
 
 const ROUTES = [
