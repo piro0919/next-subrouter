@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.0.0 - 2026-10-01
 
 - **BREAKING:** `SubdomainLink` and `useSubdomain` moved to a new `next-subrouter/client` entry, which carries the `"use client"` directive. The main `next-subrouter` entry no longer exports them, so it is safe to import from `proxy.ts`, `middleware.ts` and server components.
 - **BREAKING:** `createSubrouterMiddleware` only treats the first path segment as a locale when it is listed in the new `locales` option. Before, any 2–3 lowercase letter segment counted, so `admin.example.com/faq` was rewritten to `/faq/admin`. `createIntlSubrouterMiddleware` had the same bug after stripping the locale (`/ja/faq` → `/ja/faq/admin`); it is fixed too.
