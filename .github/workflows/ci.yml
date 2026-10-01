@@ -8,17 +8,81 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # pnpm 11 needs Node >= 22.13. Older Node is covered by `smoke`.
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
+      # The pnpm version comes from `packageManager` in package.json
       - uses: pnpm/action-setup@v4
-        with:
-          version: 11.1.2
       - uses: actions/setup-node@v4
         with:
-          node-version: 22.23.2
+          node-version: ${{ matrix.node }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm lint
       - run: pnpm type-check
       - run: pnpm test
       - run: pnpm build
+      - run: pnpm check:package
+      - if: matrix.node == 24
+        run: npm pack
+      - if: matrix.node == 24
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          path: next-subrouter-*.tgz
+
+  peers:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The floor of the peer ranges
+          - next: 13.5.11
+            react: 18
+          - next: latest
+            react: latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm add -D next@${{ matrix.next }}
+          react@${{ matrix.react }} react-dom@${{ matrix.react }}
+          @types/react@${{ matrix.react }} @types/react-dom@${{ matrix.react }}
+      - run: pnpm test
+
+  # The published code claims Node >= 18; load both entries there, with the
+  # newest Next.js that still runs on that Node.
+  smoke:
+    needs: ci
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - node: 18
+            next: 14
+          - node: 20
+            next: 15
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: package
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: |
+          mkdir smoke && cd smoke
+          echo '{"name":"smoke","private":true}' > package.json
+          npm i --no-audit --no-fund ../next-subrouter-*.tgz next@${{ matrix.next }} react@18 react-dom@18
+          node -e "const m = require('next-subrouter'); const c = require('next-subrouter/client'); if (typeof m.createSubrouterProxy !== 'function' || typeof c.SubdomainLink !== 'function') process.exit(1)"
+          node --input-type=module -e "const m = await import('next-subrouter'); const c = await import('next-subrouter/client'); if (typeof m.createSubrouterMiddleware !== 'function' || typeof c.useSubdomain !== 'function') process.exit(1)"

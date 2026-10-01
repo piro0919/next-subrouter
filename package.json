@@ -108,11 +108,12 @@
     "postbuild:demo": "next-sitemap",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm test && pnpm build",
+    "prepublishOnly": "pnpm lint && pnpm type-check && pnpm test && pnpm build && pnpm check:package",
     "prettier": "prettier --write .",
     "secretlint": "secretlint '**/*'",
     "start": "next start",
-    "type-check": "tsc --noemit"
+    "type-check": "tsc --noemit",
+    "check:package": "publint --strict && attw --pack ."
   },
   "types": "./dist/index.d.ts",
   "version": "1.0.1",
@@ -148,5 +149,6 @@
         "./dist/client.d.ts"
       ]
     }
-  }
+  },
+  "packageManager": "pnpm@11.1.2"
 }
