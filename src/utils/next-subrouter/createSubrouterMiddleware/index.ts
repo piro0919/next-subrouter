@@ -1,30 +1,28 @@
 /* eslint-disable write-good-comments/write-good-comments */
 /* eslint-disable no-console */
 /**
- * Next.js Subdomain Router Middleware
+ * Next.js Subdomain Router
  *
- * Provides subdomain-based routing with optional internationalization support.
- * Routes requests from subdomains to specific paths within your Next.js application.
+ * Routes requests from subdomains to paths within your Next.js application.
+ * Works as `middleware.ts` (Next.js 13–15) and as `proxy.ts` (Next.js 16+).
  *
  * @example
- * // Basic usage
- * const middleware = createMiddleware([
- *   { path: '/dashboard', subdomain: 'admin' },
- *   { path: '/blog' } // default route (no subdomain)
+ * // proxy.ts (Next.js 16+) or middleware.ts (Next.js 13–15)
+ * export default createSubrouterMiddleware([
+ *   { path: "/admin", subdomain: "admin" },
+ *   { path: "/app" }, // default route (no subdomain)
  * ]);
- *
- * @example
- * // With debug logging
- * const middleware = createMiddleware(subRoutes, {
- *   debug: true
- * });
  */
-import { type NextRequest, NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server.js";
+import getSubdomain, {
+  resolveRootDomain,
+  type RootDomain,
+} from "../getSubdomain";
 
 /**
  * Configuration for a single route
  */
-type SubRoute = {
+export type SubRoute = {
   /** The path to rewrite to (e.g., '/dashboard') */
   path: string;
   /** The subdomain that triggers this route (e.g., 'admin'). If undefined, this becomes the default route */
@@ -34,79 +32,40 @@ type SubRoute = {
 export type SubRoutes = SubRoute[];
 
 /**
- * Options for createMiddleware
+ * What to do with a subdomain that matches no route.
+ * - "default": serve the default route, as if it were the root domain
+ * - "notFound": respond with 404
+ */
+export type UnknownSubdomainBehavior = "default" | "notFound";
+
+/**
+ * Options for createSubrouterMiddleware
  */
 export type CreateSubrouterMiddlewareOptions = {
   /** Enable debug logging (recommended for development) */
   debug?: boolean;
+  /**
+   * Locales that may prefix the path (e.g. ["en", "ja"]). Only these are
+   * kept in front of the route path: "/ja/users" on admin becomes
+   * "/ja/admin/users". Without this option no segment is treated as a locale.
+   */
+  locales?: readonly string[];
+  /**
+   * What to do with a subdomain that matches no route. Defaults to "default".
+   */
+  onUnknownSubdomain?: UnknownSubdomainBehavior;
+  /**
+   * The root domain(s) subdomains hang off, e.g. "example.co.uk".
+   * Defaults to the NEXT_PUBLIC_BASE_DOMAIN environment variable, then to
+   * auto-detection (last two labels, or "localhost").
+   */
+  rootDomain?: RootDomain;
 };
 
-type ParsedHostname = {
-  cleanHostname: string;
-  subdomain: string;
-};
-
-type RouteResolution = {
-  isDefaultRoute: boolean;
-  route: null | SubRoute;
-};
-
-type RouteResolver = {
-  configuredSubdomains: Set<string>;
-  defaultRoute: null | SubRoute;
-  hostnameCache: Map<string, ParsedHostname>;
-  subdomainToRouteMap: Map<string | undefined, SubRoute>;
-};
-
-/** Maximum number of hostnames to cache to prevent memory leaks */
-const HOSTNAME_CACHE_MAX_SIZE = 1000;
-
-/**
- * Parse hostname from request with caching for performance
- * Extracts subdomain from host header (e.g., 'admin.example.com' -> 'admin')
- * Cache is automatically cleared when it exceeds the maximum size
- */
-function parseHostname(
-  request: NextRequest,
-  cache: Map<string, ParsedHostname>,
-): ParsedHostname {
-  const hostname = request.headers.get("host") ?? "";
-
-  if (cache.has(hostname)) {
-    return cache.get(hostname)!;
-  }
-
-  const cleanHostname = hostname.split(":")[0];
-  const [subdomain] = cleanHostname.split(".");
-  const result = { cleanHostname, subdomain };
-
-  // Clear cache if it exceeds the maximum size to prevent memory leaks
-  if (cache.size >= HOSTNAME_CACHE_MAX_SIZE) {
-    cache.clear();
-  }
-
-  cache.set(hostname, result);
-
-  return result;
-}
-
-/**
- * Check if subdomain should be treated as base domain
- * Used to determine if default route should be applied
- */
-function isBaseDomain(
-  subdomain: string,
-  configuredSubdomains: Set<string>,
-): boolean {
-  // localhost and IP addresses are always base domains
-  if (subdomain === "localhost" || /^[0-9.]+$/.test(subdomain)) {
-    return true;
-  }
-
-  // If subdomain is not in configuration, treat it as part of base domain
-  // This handles cases like next-subrouter.kkweb.io where "next-subrouter" is the base
-  return !configuredSubdomains.has(subdomain);
-}
+type RouteResolution =
+  | { isDefaultRoute: boolean; kind: "route"; route: SubRoute }
+  | { kind: "none" }
+  | { kind: "notFound" };
 
 /**
  * Validate subRoutes configuration for duplicates
@@ -136,179 +95,117 @@ function validateSubRoutes(subRoutes: SubRoutes): void {
 }
 
 /**
- * Create route resolver with validation and caching
- * Sets up maps for O(1) route lookups and hostname parsing cache
+ * Split a leading locale segment off the path, but only for configured locales
  */
-function createRouteResolver(subRoutes: SubRoutes): RouteResolver {
-  validateSubRoutes(subRoutes);
-
-  const subdomainToRouteMap = new Map<string | undefined, SubRoute>();
-  const defaultRoute = subRoutes.find((r) => r.subdomain == null) ?? null;
-  const hostnameCache = new Map<string, ParsedHostname>();
-  const configuredSubdomains = new Set<string>();
-
-  for (const route of subRoutes) {
-    subdomainToRouteMap.set(route.subdomain, route);
-
-    if (route.subdomain !== undefined) {
-      configuredSubdomains.add(route.subdomain);
-    }
-  }
-
-  return {
-    configuredSubdomains,
-    defaultRoute,
-    hostnameCache,
-    subdomainToRouteMap,
-  };
-}
-
-/**
- * Resolve route based on subdomain
- * Returns the matching route and whether it's the default route
- */
-function resolveRoute(
-  subdomain: string,
-  resolver: RouteResolver,
-): RouteResolution {
-  const route = resolver.subdomainToRouteMap.get(subdomain);
-
-  if (route) {
-    return { isDefaultRoute: false, route };
-  }
-
-  // Apply default route only for base domain
-  if (
-    resolver.defaultRoute &&
-    isBaseDomain(subdomain, resolver.configuredSubdomains)
-  ) {
-    return { isDefaultRoute: true, route: resolver.defaultRoute };
-  }
-
-  return { isDefaultRoute: false, route: null };
-}
-
-/**
- * Determine if direct access to a route path should be blocked
- * Prevents accessing /dashboard/page directly when it should be admin.example.com/page
- * Returns true if the request should be blocked with a 404 response
- */
-function shouldBlockDirectAccess(
+function splitLocale(
   pathname: string,
-  route: SubRoute,
-  isDefaultRoute: boolean,
-): boolean {
-  return isDefaultRoute && pathname.startsWith(route.path + "/");
+  locales: readonly string[] | undefined,
+): { locale: null | string; rest: string } {
+  if (!locales || locales.length === 0) {
+    return { locale: null, rest: pathname };
+  }
+
+  const [, first = ""] = pathname.split("/");
+
+  if (!locales.includes(first)) {
+    return { locale: null, rest: pathname };
+  }
+
+  return { locale: first, rest: pathname.slice(first.length + 1) };
 }
 
 /**
- * Check if the pathname has already been rewritten by the middleware
- * Prevents infinite rewrite loops
- */
-function isAlreadyRewritten(pathname: string, route: SubRoute): boolean {
-  return pathname.startsWith(route.path + "/") && pathname !== route.path;
-}
-
-/**
- * Create Next.js middleware for subdomain-based routing
+ * Create Next.js middleware (or proxy) for subdomain-based routing
  *
  * @param subRoutes - Array of route configurations
- * @param options - Optional configuration including debug settings
- * @returns Next.js middleware function
- *
- * @example
- * // Basic subdomain routing
- * const middleware = createMiddleware([
- *   { path: '/admin', subdomain: 'admin' },
- *   { path: '/blog', subdomain: 'blog' },
- *   { path: '/app' } // default route
- * ]);
- *
- * @example
- * // With debug logging
- * const middleware = createSubrouterMiddleware(subRoutes, {
- *   debug: process.env.NODE_ENV === 'development'
- * });
+ * @param options - Optional configuration
+ * @returns A function to export from `proxy.ts` or `middleware.ts`
  */
 export default function createSubrouterMiddleware(
   subRoutes: SubRoutes,
   options?: CreateSubrouterMiddlewareOptions,
-) {
-  const routeResolver = createRouteResolver(subRoutes);
-  const debug = options?.debug ?? false;
+): (request: NextRequest) => Promise<NextResponse> {
+  validateSubRoutes(subRoutes);
 
-  /**
-   * The actual middleware function that handles requests
-   * Processes subdomain routing and optional internationalization
-   */
+  const routesBySubdomain = new Map<string, SubRoute>();
+  const defaultRoute = subRoutes.find((r) => r.subdomain == null) ?? null;
+  const debug = options?.debug ?? false;
+  const onUnknownSubdomain = options?.onUnknownSubdomain ?? "default";
+  const rootDomain = resolveRootDomain(options?.rootDomain);
+
+  for (const route of subRoutes) {
+    if (route.subdomain != null) {
+      routesBySubdomain.set(route.subdomain.toLowerCase(), route);
+    }
+  }
+
+  function resolveRoute(subdomain: null | string): RouteResolution {
+    if (subdomain !== null) {
+      const route = routesBySubdomain.get(subdomain);
+
+      if (route) {
+        return { isDefaultRoute: false, kind: "route", route };
+      }
+
+      if (onUnknownSubdomain === "notFound") {
+        return { kind: "notFound" };
+      }
+    }
+
+    return defaultRoute
+      ? { isDefaultRoute: true, kind: "route", route: defaultRoute }
+      : { kind: "none" };
+  }
+
   return async function middleware(
     request: NextRequest,
   ): Promise<NextResponse> {
     const { pathname } = request.nextUrl;
-    const { subdomain } = parseHostname(request, routeResolver.hostnameCache);
-    // Standard subrouter processing
-    const { isDefaultRoute, route } = resolveRoute(subdomain, routeResolver);
+    const host = request.headers.get("host") ?? request.nextUrl.host;
+    const subdomain = getSubdomain(host, rootDomain);
+    const resolution = resolveRoute(subdomain);
 
     if (debug) {
-      console.log("[createMiddleware]", {
-        isDefaultRoute,
+      console.log("[next-subrouter]", {
+        host,
         pathname,
-        routePath: route?.path,
-        routeSubdomain: route?.subdomain,
+        resolution,
         subdomain,
       });
     }
 
-    if (!route) {
-      if (debug)
-        console.log(
-          "[createSubrouterMiddleware] No route found - passing through",
-        );
+    if (resolution.kind === "notFound") {
+      return new NextResponse(null, { status: 404 });
+    }
 
+    if (resolution.kind === "none") {
       return NextResponse.next();
     }
 
-    if (shouldBlockDirectAccess(pathname, route, isDefaultRoute)) {
-      if (debug)
-        console.log(
-          "[createSubrouterMiddleware] Direct access blocked - returning 404",
-        );
+    const { isDefaultRoute, route } = resolution;
+    const { locale, rest } = splitLocale(pathname, options?.locales);
+
+    // Block example.com/app/page when /app is the default route
+    if (isDefaultRoute && rest.startsWith(route.path + "/")) {
+      if (debug) console.log("[next-subrouter] Direct access blocked - 404");
 
       return new NextResponse(null, { status: 404 });
     }
 
-    if (isAlreadyRewritten(pathname, route)) {
-      if (debug)
-        console.log(
-          "[createSubrouterMiddleware] Already rewritten - passing through",
-        );
+    // Already under the route path; prevents rewrite loops
+    if (rest.startsWith(route.path + "/") && rest !== route.path) {
+      if (debug) console.log("[next-subrouter] Already rewritten - next()");
 
       return NextResponse.next();
     }
 
     const url = request.nextUrl.clone();
-    // Handle internationalized paths: if pathname starts with /{locale},
-    // preserve locale and append route path
-    // Supports: en, ja, zh-CN, pt-BR, en-US, zh-Hans, etc.
-    const localeMatch = pathname.match(
-      /^\/([a-z]{2,3}(?:-[a-zA-Z]{2,4})?)(\/.*)?$/,
-    );
 
-    if (localeMatch && route.path) {
-      const [, locale, remainingPath = ""] = localeMatch;
+    url.pathname = `${locale === null ? "" : `/${locale}`}${route.path}${rest}`;
 
-      url.pathname = `/${locale}${route.path}${remainingPath}`;
-    } else {
-      url.pathname = `${route.path}${pathname}`;
+    if (debug) {
+      console.log("[next-subrouter] Rewriting:", pathname, "->", url.pathname);
     }
-
-    if (debug)
-      console.log(
-        "[createSubrouterMiddleware] Rewriting:",
-        pathname,
-        "->",
-        url.pathname,
-      );
 
     return NextResponse.rewrite(url);
   };

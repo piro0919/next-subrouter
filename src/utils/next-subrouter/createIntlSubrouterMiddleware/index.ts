@@ -1,6 +1,8 @@
+/* eslint-disable write-good-comments/write-good-comments */
 /* eslint-disable no-console */
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server.js";
 import createSubrouterMiddleware, {
+  type CreateSubrouterMiddlewareOptions,
   type SubRoutes,
 } from "../createSubrouterMiddleware";
 
@@ -14,13 +16,17 @@ export type IntlMiddleware = (
 /**
  * Options for createIntlSubrouterMiddleware
  */
-export type CreateIntlSubrouterMiddlewareOptions = {
-  /** Enable debug logging (recommended for development) */
-  debug?: boolean;
-  /** Default locale to use as fallback */
+export type CreateIntlSubrouterMiddlewareOptions = Omit<
+  CreateSubrouterMiddlewareOptions,
+  "locales"
+> & {
+  /**
+   * @deprecated Ignored. The default locale comes from the intl middleware
+   * (next-intl's `routing.defaultLocale`). Will be removed in the next major.
+   */
   defaultLocale?: string;
   /** Array of supported locales */
-  locales: string[];
+  locales: readonly string[];
 };
 
 /**
@@ -28,7 +34,7 @@ export type CreateIntlSubrouterMiddlewareOptions = {
  */
 function getLocaleFromPath(
   pathname: string,
-  locales: string[],
+  locales: readonly string[],
 ): {
   isValid: boolean;
   locale: null | string;
@@ -95,29 +101,28 @@ async function processWithSubrouterAndLocale(
  * @returns Next.js middleware function
  *
  * @example
- * import createIntlSubrouterMiddleware from './utils/next-subrouter/createIntlSubrouterMiddleware';
- * import createIntlMiddleware from 'next-intl/middleware';
- * import { routing } from './i18n/routing';
+ * // proxy.ts (Next.js 16+) or middleware.ts (Next.js 13–15)
+ * import { createIntlSubrouterMiddleware } from "next-subrouter";
+ * import createIntlMiddleware from "next-intl/middleware";
+ * import { routing } from "./i18n/routing";
  *
- * const intlMiddleware = createIntlMiddleware(routing);
- *
- * export const middleware = createIntlSubrouterMiddleware(
+ * export default createIntlSubrouterMiddleware(
  *   subRoutes,
- *   intlMiddleware,
- *   {
- *     debug: process.env.NODE_ENV === 'development',
- *     locales: ['en', 'ja'],
- *     defaultLocale: 'en' // optional
- *   }
+ *   createIntlMiddleware(routing),
+ *   { locales: routing.locales },
  * );
  */
 export default function createIntlSubrouterMiddleware(
   subRoutes: SubRoutes,
   intlMiddleware: IntlMiddleware,
   options: CreateIntlSubrouterMiddlewareOptions,
-) {
+): (request: NextRequest) => Promise<NextResponse> {
+  // The locale is stripped before the subrouter sees the path, so it gets no
+  // `locales` and never mistakes a path segment for a locale.
   const subrouterMiddleware = createSubrouterMiddleware(subRoutes, {
-    debug: options?.debug,
+    debug: options.debug,
+    onUnknownSubdomain: options.onUnknownSubdomain,
+    rootDomain: options.rootDomain,
   });
   const debug = options?.debug ?? false;
 
@@ -208,6 +213,11 @@ export default function createIntlSubrouterMiddleware(
           subrouterMiddleware,
           debug,
         );
+
+        // A 404 from the subrouter (blocked path or unknown subdomain) wins
+        if (response.status === 404) {
+          return response;
+        }
 
         // If subrouter didn't rewrite, return original intl response
         if (!response.headers.get("x-middleware-rewrite")) {
