@@ -5,6 +5,7 @@ import {
   type SubRoutes,
 } from "./utils/next-subrouter";
 
+const ROOT_DOMAIN = "next-subrouter.kkweb.io";
 const subRoutes: SubRoutes = [
   {
     path: "/app",
@@ -20,15 +21,16 @@ const subRoutes: SubRoutes = [
 ];
 const intlMiddleware = createIntlMiddleware(routing);
 
-export const middleware = createIntlSubrouterMiddleware(
-  subRoutes,
-  intlMiddleware,
-  {
-    debug: process.env.NODE_ENV === "development",
-    defaultLocale: routing.defaultLocale,
-    locales: [...routing.locales],
-  },
-);
+// Next.js 16 calls this file proxy.ts; it accepts a default export or a
+// named `proxy` export.
+export default createIntlSubrouterMiddleware(subRoutes, intlMiddleware, {
+  debug: process.env.NODE_ENV === "development",
+  locales: routing.locales,
+  // admin.next-subrouter.kkweb.io has three labels before the subdomain, so
+  // auto-detection would read "admin.next-subrouter". Other hosts (localhost,
+  // Vercel previews) fall back to auto-detection.
+  rootDomain: ROOT_DOMAIN,
+});
 
 export const config = {
   // Match all pathnames except for

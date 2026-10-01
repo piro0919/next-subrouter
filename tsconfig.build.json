@@ -13,7 +13,7 @@
   },
   "exclude": [
     "src/app/**/*",
-    "src/middleware.ts",
+    "src/proxy.ts",
     "**/*.test.ts",
     "**/*.spec.ts"
   ],
