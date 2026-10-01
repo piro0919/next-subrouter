@@ -8,6 +8,8 @@ import perfectionist from "eslint-plugin-perfectionist";
 import promise from "eslint-plugin-promise";
 import unusedImports from "eslint-plugin-unused-imports";
 import writeGoodComments from "eslint-plugin-write-good-comments";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
 import { fixupPluginRules } from "@eslint/compat";
@@ -22,20 +24,30 @@ const compat = new FlatCompat({
 });
 const eslintConfig = [
   {
+    ignores: [
+      ".next/**",
+      "dist/**",
+      "next-env.d.ts",
+      "reset.d.ts",
+      "*.config.{js,cjs,mjs,ts}",
+      ".prettierrc.js",
+    ],
+  },
+  {
     files: ["**/*.{js,jsx,ts,tsx,mjs}"],
   },
   ...compat.extends(
     "eslint:recommended",
-    "plugin:@typescript-eslint/recommended",
     "plugin:css/recommended",
     "plugin:no-unsanitized/recommended-legacy",
     "plugin:promise/recommended",
     "plugin:security/recommended-legacy",
-    "next/core-web-vitals",
-    "next/typescript",
     "prettier",
   ),
+  ...nextVitals,
+  ...nextTs,
   {
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     languageOptions: {
       ecmaVersion: 2024,
       parser: tsParser,
@@ -256,6 +268,12 @@ const eslintConfig = [
         },
       ],
       "write-good-comments/write-good-comments": "error",
+    },
+  },
+  {
+    files: ["tests/**"],
+    rules: {
+      "filenames/match-regex": "off",
     },
   },
 ];
