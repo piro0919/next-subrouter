@@ -1,4 +1,4 @@
-// eslint-disable-next-line filenames/match-regex
+/* eslint-disable filenames/match-regex */
 import createNextIntlPlugin from "next-intl/plugin";
 import type { NextConfig } from "next";
 

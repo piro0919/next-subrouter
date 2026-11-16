@@ -1,4 +1,4 @@
-// eslint-disable-next-line filenames/match-exported
+/* eslint-disable filenames/match-exported */
 import { Analytics } from "@vercel/analytics/next";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { Noto_Sans, Zen_Kaku_Gothic_Antique } from "next/font/google";
