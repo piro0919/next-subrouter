@@ -46,7 +46,7 @@
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "ress": "6.0.0",
-    "secretlint": "13.1.0",
+    "secretlint": "14.1.0",
     "stylelint": "16.26.1",
     "stylelint-config-css-modules": "4.6.0",
     "stylelint-config-recommended": "16.0.0",
